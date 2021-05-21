@@ -1,3 +1,3 @@
-## Run tensorboradX the get plot use command 
+## Run tensorboradX to get plot use command 
 
             tensorboard --logdir=runs
