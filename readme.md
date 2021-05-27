@@ -26,3 +26,6 @@
 ### Deep Q learning 
 
             python3 dqn_aline.py --cuda --double False --reward 5000
+
+### Max Reward:
+            593
