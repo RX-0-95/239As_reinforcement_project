@@ -131,7 +131,8 @@ class ScaledFloatFrame(gym.ObservationWrapper):
 def make_env(env_name):
     env = gym.make(env_name)
     env = MaxAndSkipEnv(env)
-    env = FireRestEnv(env)
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireRestEnv(env)
     env = ProcessFrame84(env)
     env = ImageToPytorch(env)
     env = BufferWrapper(env,4)
