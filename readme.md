@@ -9,3 +9,9 @@
 ### Deep Q learning 
 
             python3 dqn_pong.py --cuda --double False --reward 19
+
+## Result 
+
+* Pong (1.2*10^6 iter)
+    - Double Q: 19.64
+    - Q: 
