@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.optim as optim 
 from tensorboardX import SummaryWriter
 
-DEFAULT_ENV_NAME = 'PongNoFrameskip-v4'
+DEFAULT_ENV_NAME = 'BreakoutNoFrameskip-v4'
 MEAN_REWARD_BOUND = 19.0
 
 GAMMA = 0.99

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn 
 import numpy as np 
 
+
 class DQN(nn.Module):
     def __init__(self,input_shape,n_actions):
         super(DQN,self).__init__()
@@ -15,14 +16,15 @@ class DQN(nn.Module):
             nn.Conv2d(64,64,kernel_size=3,stride=1),
             nn.ReLU(),
             #nn.BatchNorm2d(),
-            nn.Conv2d(64,128,kernel_size=3,stride=1),
-            nn.ReLU(),
+            #nn.Conv2d(64,128,kernel_size=3,stride=1),
+            #nn.ReLU(),
             #nn.BatchNorm2d()
         )
         conv_out_size = self._get_conv_out(input_shape)
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size,512),
             nn.ReLU(),
+            #nn.BatchNorm1d(512),
             nn.Linear(512,n_actions)
         )
 
