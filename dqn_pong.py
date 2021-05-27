@@ -122,6 +122,8 @@ if __name__ == "__main__":
 
     double = args.double
     print('Double Q learning mode: {}'.format('True' if double else 'False'))
+    print('The target reward: {}'.format(args.reward))
+    
     args.cuda = True
     device = torch.device("cuda" if args.cuda else "cpu")
     env = wrapper.make_env(args.env)
