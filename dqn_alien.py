@@ -24,9 +24,9 @@ REPLAY_START_SIZE = 10000
 LEARNING_RATE = 1e-4
 SYNC_TARGET_FRAMES = 1000
 
-EPSILON_DECAY_LAST_FRAME = 100000
+EPSILON_DECAY_LAST_FRAME = 500000
 EPSILON_START = 1.0
-EPSILON_FINAL = 0.001 
+EPSILON_FINAL = 0.01 
 
 Experience = collections.namedtuple('Experience',field_names=['state','action','reward','done','new_state'])
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
-            print("%d: done %d games, mean reward %.3f, eps %.2f, speed %.2f f/s" % (
+            print("%d: done %d games, mean reward %.3f, eps %.3f, speed %.2f f/s" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon,
                 speed
             ))
