@@ -1,6 +1,8 @@
 
 from ast import parse
 from typing import List
+
+from torch.nn.modules import loss
 #from typing_extensions import ParamSpec
 import wrapper
 import dqn_model
@@ -83,7 +85,7 @@ class Agent:
         return done_reward
 
         
-def calc_loss(batch,net,tgt_net,device = 'cpu',double=True):
+def calc_loss(batch,net,tgt_net,device = 'cpu',double=True,loss_fn = nn.MSELoss()):
     states, actions, rewards, dones, next_states = batch 
     
     states_v = torch.tensor(states).to(device)
@@ -107,7 +109,7 @@ def calc_loss(batch,net,tgt_net,device = 'cpu',double=True):
 
     exptected_state_action_value = next_state_values * GAMMA + rewards_v
 
-    return nn.MSELoss()(state_action_values,exptected_state_action_value)
+    return loss_fn(state_action_values,exptected_state_action_value)
 
 def huber_loss(state_action_values,exptected_state_action_value):
     pass 
@@ -173,6 +175,7 @@ if __name__ == "__main__":
     parser.add_argument('--double',default=False,action="store_true")
     parser.add_argument('--eps',type=float, nargs='+',default=EPSILON_LIST)
     parser.add_argument('--eps_stage',type=int,nargs='+',default=EPSILON_STAGES)
+    parser.add_argument('--huber_loss',default=False, action='store_true', help='enable the huber loss')
     args = parser.parse_args()
 
     double = args.double
@@ -197,6 +200,12 @@ if __name__ == "__main__":
     eps_stage = args.eps_stage
     print('Epsilons:{}, update at {}'.format(eps,eps_stage))
     epsilon_scheduler = EpsilonScheduler(eps,eps_stage)
+
+    huber_loss = args.huber_loss 
+    if huber_loss:
+        loss_fn = nn.SmoothL1Loss()
+    else:
+        loss_fn = nn.MSELoss()
 
     optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
     total_rewards = []
@@ -241,7 +250,7 @@ if __name__ == "__main__":
 
         optimizer.zero_grad()
         batch = buffer.sample(BATCH_SIZE)
-        loss_t = calc_loss(batch, net, tgt_net, device=device)
+        loss_t = calc_loss(batch, net, tgt_net,device=device,loss_fn=loss_fn)
         loss_t.backward()
         optimizer.step()
     writer.close()
