@@ -19,17 +19,21 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 
 DEFAULT_ENV_NAME = 'BreakoutNoFrameskip-v4'
-MEAN_REWARD_BOUND = 19.0
+MEAN_REWARD_BOUND = 250
 
 GAMMA = 0.99
 BATCH_SIZE = 32
-REPLAY_SIZE = 10000
+# replays size larger than 20000 with cause cpu ram issuse 
+#FIXME: use other high efficiency container other than collections
+REPLAY_SIZE = 20000
 REPLAY_START_SIZE = 10000
 LEARNING_RATE = 1e-4
 SYNC_TARGET_FRAMES = 1000
 
 EPSILON_STAGES= [1000000,2000000]
 EPSILON_LIST  = [1,0.1,0.01] 
+
+GAME_LIFE = 5
 
 Experience = collections.namedtuple('Experience',field_names=['state','action','reward','done','new_state'])
 
@@ -111,8 +115,6 @@ def calc_loss(batch,net,tgt_net,device = 'cpu',double=True,loss_fn = nn.MSELoss(
 
     return loss_fn(state_action_values,exptected_state_action_value)
 
-def huber_loss(state_action_values,exptected_state_action_value):
-    pass 
 
 class EpsilonScheduler:
     def __init__(self,epsilons:List, epsilon_stages:List):
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     
     args.cuda = True
     device = torch.device("cuda" if args.cuda else "cpu")
-    env = wrapper.make_env(args.env)
+    env = wrapper.make_env(args.env,norm_frame=True,episodic_life=True,reward_clipping=False)
     
 
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
@@ -213,18 +215,24 @@ if __name__ == "__main__":
     ts_frame = 0
     ts = time.time()
     best_mean_reward = None
-
+    #life_counter = 0 
+    #life_mean_reward = 0 
+    #life_reward = 0 
     while True:
         frame_idx += 1
         #epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
         epsilon = epsilon_scheduler.update_eplison() 
         reward = agent.play_step(net, epsilon, device=device)
+        
         if reward is not None:
             total_rewards.append(reward)
             speed = (frame_idx - ts_frame) / (time.time() - ts)
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
+            #life_mean_reward += mean_reward
+            #total_reward_len = len(total_rewards)
+            #if len(total_rewards) % GAME_LIFE == 0:
             print("%d: done %d games, mean reward %.3f, eps %.3f, speed %.2f f/s" % (
                 frame_idx, len(total_rewards), mean_reward, epsilon,
                 speed

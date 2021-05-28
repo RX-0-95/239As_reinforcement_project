@@ -1,9 +1,43 @@
-import cv2 
+import cv2
+from gym.core import RewardWrapper 
 import numpy as np 
 import collections
 import gym
 import gym.spaces
 from numpy.lib.utils import info 
+
+class NoopResetEnv(gym.Wrapper):
+    def __init__(self, env=None, noop_max=30):
+        """Sample initial states by taking random number of no-ops on reset.
+        No-op is assumed to be action 0.
+        """
+        super(NoopResetEnv, self).__init__(env)
+        self.noop_max = noop_max
+        self.override_num_noops = None
+        assert env.unwrapped.get_action_meanings()[0] == 'NOOP'
+
+    def step(self, action):
+        return self.env.step(action)
+
+    def reset(self):
+        """ Do no-op action for a number of steps in [1, noop_max]."""
+        self.env.reset()
+        if self.override_num_noops is not None:
+            noops = self.override_num_noops
+        else:
+            noops = np.random.randint(1, self.noop_max + 1)
+        assert noops > 0
+        obs = None
+        for _ in range(noops):
+            obs, _, done, _ = self.env.step(0)
+            if done:
+                obs = self.env.reset()
+        return obs
+
+class ClippedRewardsWrapper(gym.RewardWrapper):
+    def reward(self, reward):
+        """Change all the positive rewards to 1, negative to -1 and keep zero."""
+        return np.sign(reward)
 
 class FireRestEnv(gym.Wrapper):
     def __init__(self, env=None):
@@ -23,6 +57,45 @@ class FireRestEnv(gym.Wrapper):
         if done:
             self.reset()
         return obs 
+
+class EpisodicLifeEnv(gym.Wrapper):
+    def __init__(self, env=None):
+        """Make end-of-life == end-of-episode, but only reset on true game over.
+        Done by DeepMind for the DQN and co. since it helps value estimation.
+        """
+        super(EpisodicLifeEnv, self).__init__(env)
+        self.lives = 0
+        self.was_real_done = True
+        self.was_real_reset = False
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.was_real_done = done
+        # check current lives, make loss of life terminal,
+        # then update lives to handle bonus lives
+        lives = self.env.unwrapped.ale.lives()
+        if lives < self.lives and lives > 0:
+            # for Qbert somtimes we stay in lives == 0 condtion for a few frames
+            # so its important to keep lives > 0, so that we only reset once
+            # the environment advertises done.
+            done = True
+        self.lives = lives
+        return obs, reward, done, info
+
+    def reset(self):
+        """Reset only when lives are exhausted.
+        This way all states are still reachable even though lives are episodic,
+        and the learner need not know about any of this behind-the-scenes.
+        """
+        if self.was_real_done:
+            obs = self.env.reset()
+            self.was_real_reset = True
+        else:
+            # no-op step to advance from terminal/lost life state
+            obs, _, _, _ = self.env.step(0)
+            self.was_real_reset = False
+        self.lives = self.env.unwrapped.ale.lives()
+        return obs
 
 class MaxAndSkipEnv(gym.Wrapper):
     def __init__(self, env=None,skip = 4):
@@ -128,13 +201,34 @@ class ScaledFloatFrame(gym.ObservationWrapper):
     def observation(self, obs):
         return np.array(obs).astype(np.float32)/255.0
     
-def make_env(env_name):
+
+def make_env(env_name,stack_frames =4, episodic_life = True,reward_clipping=True,
+            norm_frame = True):
+    env = gym.make(env_name)
+    if episodic_life:
+        env = EpisodicLifeEnv(env)
+    env = NoopResetEnv(env,noop_max=10)
+    env = MaxAndSkipEnv(env)
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireRestEnv(env)
+    env = ProcessFrame84(env)
+    env = ImageToPytorch(env)
+    env = BufferWrapper(env,stack_frames)
+    if norm_frame:
+        env = ScaledFloatFrame(env)
+    if reward_clipping:
+        env = ClippedRewardsWrapper(env)
+    return env
+
+"""
+def make_env(env_name,stack_frames =4, episodic_life = True,reward_clipping=True,
+            norm_frame = False):
     env = gym.make(env_name)
     env = MaxAndSkipEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireRestEnv(env)
     env = ProcessFrame84(env)
     env = ImageToPytorch(env)
-    env = BufferWrapper(env,4)
+    env = BufferWrapper(env,stack_frames)
     return ScaledFloatFrame(env)
-    
+"""
