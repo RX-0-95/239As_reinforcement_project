@@ -29,3 +29,8 @@
 
 ### Max Reward:
             593
+
+
+## Breakout:
+### Double Q:
+5.5*10^6 steps, 10000 games, max reward: 72.04
