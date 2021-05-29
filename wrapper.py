@@ -217,8 +217,8 @@ class ScaledFloatFrame(gym.ObservationWrapper):
     
 
 def make_env(env_name,stack_frames =4, episodic_life = True,reward_clipping=False,
-            norm_frame = True):
-    env = gym.make(env_name)
+            norm_frame = True,*args,**kwargs):
+    env = gym.make(env_name,*args,**kwargs)
     if episodic_life:
         env = EpisodicLifeEnv(env)
 
