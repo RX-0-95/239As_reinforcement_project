@@ -115,6 +115,9 @@ def calc_loss(batch,net,tgt_net,device = 'cpu',double=True,loss_fn = nn.MSELoss(
 
     return loss_fn(state_action_values,exptected_state_action_value)
 
+def load_model(model,model_dir):
+    state = torch.load(model_dir,map_location=lambda stg,_: stg)
+    model.load_state_dict(state)
 
 class EpsilonScheduler:
     def __init__(self,epsilons:List, epsilon_stages:List):
@@ -178,6 +181,9 @@ if __name__ == "__main__":
     parser.add_argument('--eps',type=float, nargs='+',default=EPSILON_LIST)
     parser.add_argument('--eps_stage',type=int,nargs='+',default=EPSILON_STAGES)
     parser.add_argument('--huber_loss',default=False, action='store_true', help='enable the huber loss')
+    parser.add_argument('--load_model',default=False, action='store_true')
+    parser.add_argument('--model_dir',default=DEFAULT_ENV_NAME+'-best.dat', help = 'model directory')
+
     args = parser.parse_args()
 
     double = args.double
@@ -191,6 +197,12 @@ if __name__ == "__main__":
 
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
+
+    if args.load_model:
+        load_model(net,args.model_dir)
+        load_model(tgt_net,args.model_dir)
+
+
     writer = SummaryWriter(comment="-" + args.env)
     print(net)
 
