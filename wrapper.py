@@ -1,3 +1,4 @@
+from tarfile import is_tarfile
 import cv2
 from gym.core import RewardWrapper 
 import numpy as np 
@@ -46,10 +47,15 @@ class FireRestEnv(gym.Wrapper):
         assert len(env.unwrapped.get_action_meanings())>=3
 
     def step(self, action):
+        #self.env.step(1)
+        #fire_ram = np.random.randint(1,30)
+        #if fire_ram > 15:
+        #    self.env.step(action)
         return self.env.step(action)
     
-    def reset(self, **kwargs):
+    def reset(self):
         self.env.reset()
+        #print('------------Fire---------------')
         obs,_,done,_ = self.env.step(1)
         if done: 
             self.env.reset()
@@ -67,6 +73,8 @@ class EpisodicLifeEnv(gym.Wrapper):
         self.lives = 0
         self.was_real_done = True
         self.was_real_reset = False
+        #self.is_fire_able = (env.unwrapped.get_action_meanings()[1] == 'FIRE')
+        #print('Is the env fireable: {}'.format(self.is_fire_able))
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -74,11 +82,13 @@ class EpisodicLifeEnv(gym.Wrapper):
         # check current lives, make loss of life terminal,
         # then update lives to handle bonus lives
         lives = self.env.unwrapped.ale.lives()
+        
         if lives < self.lives and lives > 0:
             # for Qbert somtimes we stay in lives == 0 condtion for a few frames
             # so its important to keep lives > 0, so that we only reset once
             # the environment advertises done.
             done = True
+        print('Lives remian {}, done: {}, selflives: {}'.format(lives,done,self.lives))
         self.lives = lives
         return obs, reward, done, info
 
@@ -93,6 +103,10 @@ class EpisodicLifeEnv(gym.Wrapper):
         else:
             # no-op step to advance from terminal/lost life state
             obs, _, _, _ = self.env.step(0)
+            #fire if the the env can fire 
+            #if self.is_fire_able:
+                #print('-----------Eposiod fire ----------')
+            #    self.env.step(1)
             self.was_real_reset = False
         self.lives = self.env.unwrapped.ale.lives()
         return obs
@@ -202,12 +216,14 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         return np.array(obs).astype(np.float32)/255.0
     
 
-def make_env(env_name,stack_frames =4, episodic_life = True,reward_clipping=True,
+def make_env(env_name,stack_frames =4, episodic_life = True,reward_clipping=False,
             norm_frame = True):
     env = gym.make(env_name)
     if episodic_life:
         env = EpisodicLifeEnv(env)
-    env = NoopResetEnv(env,noop_max=10)
+
+    env = NoopResetEnv(env,noop_max=30)
+    
     env = MaxAndSkipEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireRestEnv(env)
