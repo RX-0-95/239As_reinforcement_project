@@ -192,13 +192,14 @@ if __name__ == "__main__":
     
     args.cuda = True
     device = torch.device("cuda" if args.cuda else "cpu")
-    env = wrapper.make_env(args.env,norm_frame=True,episodic_life=True,reward_clipping=False)
+    env = wrapper.make_env(args.env,norm_frame=True,episodic_life=True,reward_clipping=True)
     
 
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
 
     if args.load_model:
+        print('load model from {}'.format(args.model_dir))
         load_model(net,args.model_dir)
         load_model(tgt_net,args.model_dir)
 
