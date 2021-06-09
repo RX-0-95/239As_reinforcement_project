@@ -16,16 +16,18 @@ class DQN(nn.Module):
             nn.Conv2d(64,64,kernel_size=3,stride=1),
             nn.ReLU(),
             #nn.BatchNorm2d(),
-            nn.Conv2d(64,128,kernel_size=3,stride=1),
-            nn.ReLU(),
+            #nn.Conv2d(64,128,kernel_size=3,stride=1),
+            #nn.ReLU(),
             #nn.BatchNorm2d()
         )
         conv_out_size = self._get_conv_out(input_shape)
         self.fc = nn.Sequential(
-            nn.Linear(conv_out_size,1024),
+            #nn.Linear(conv_out_size,1024),
+            #nn.ReLU(),
+            #nn.Linear(1024,n_actions)
+            nn.Linear(conv_out_size,512),
             nn.ReLU(),
-            #nn.BatchNorm1d(512),
-            nn.Linear(1024,n_actions)
+            nn.Linear(512,n_actions)
         )
 
     def _get_conv_out(self,shape):
